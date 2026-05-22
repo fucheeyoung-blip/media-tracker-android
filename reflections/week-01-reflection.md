@@ -1,12 +1,3 @@
-# Week {{N}} Reflection
-
-**Name:** Fuchee Young
-**Date:** 5/21/2026
-
----
-
-## Commits This Week
-
 <!-- Paste a link to your commits for this week. The easiest way: go to your repo on GitHub,
      click "commits", and copy the URL after filtering by your name or branch. -->
 
@@ -33,7 +24,16 @@ Abdullahi Hassan
 
 ### What I Noticed
 
-<!-- Be specific. Did you spot a potential bug? A pattern that could cause problems? Something
+<!-- Be specific. Did you spot a potential bug?# Week {{N}} Reflection
+
+**Name:** Fuchee Young
+**Date:** 5/21/2026
+
+---
+
+## Commits This Week
+
+ A pattern that could cause problems? Something
      done well that you want to call out? "I looked at the ViewModel and everything seemed fine"
      is not specific enough. Name the thing you noticed and explain why it matters. -->
 
