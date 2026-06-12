@@ -12,6 +12,7 @@
 
 **Link:**
 
+https://github.com/fucheeyoung-blip/media-tracker-android/pull/5/changes/964a298cdb8c42cfe251fadae274f0dea5a7f1e7
 ---
 
 ## Code Review
@@ -22,11 +23,15 @@
 
 **Reviewed:** *(pod mate's name)*
 
+Fasika Yifru
 
 **Link to my review:**
 
+https://github.com/FasikaYifru/fy-media-tracker-android/pull/5
 ### What I Looked At
 
+I reviewed Fasika's PR, focusing on RegisterScreen.kt, RegisterViewModel.kt, and strings.xml. 
+The PR touched the sign-up button behavior and a few string resources.
 
 <!-- Walk through the code you reviewed. What was the PR trying to do? Which files or
      functions did you focus on? -->
@@ -34,6 +39,9 @@
 ### What I Noticed
 
 
+The strings.xml change fixing sign_up_button from "Sign In" to "Sign Up" was a real bug fix that label would have confused users on the registration screen. However, I noticed a bigger issue in RegisterViewModel.kt: the onSignupClicked() 
+function previously called userRepository.createAccount(...) inside viewModelScope.launch on successful validation, but this PR removes that call entirely and replaces it with a hardcoded _errorMessage.value = "Sign up functionality isn't implemented yet." 
+A matching Toast was also added in RegisterScreen.kt that fires on every button click regardless of validation. This looks like it could be reverting working registration functionality rather than adding to it.
 
 <!-- Be specific. Did you spot a potential bug? A pattern that could cause problems? Something
      done well that you want to call out? "I looked at the ViewModel and everything seemed fine"
@@ -42,6 +50,8 @@
 ### Comments I Left
 
 
+I praised the strings.xml fix as a genuinely good catch. Then I flagged the removal of the userRepository.createAccount(...) call and asked whether this was intentional for example,
+temporarily disabling registration while the backend isn't ready or whether it accidentally overwrote working code during a merge.
 
 <!-- Briefly summarize the comments you left on the PR. If you left a positive comment,
      say what it was. If you left a suggestion, say what you suggested and why. -->
@@ -50,6 +60,8 @@
 
 ## One Thing I Understood More Deeply
 
+This week I restyled RegisterScreen.kt to match LoginScreen.kt's layout. Going through it line by line, I realized "matching the style" wasn't about copying colors by eye — both screens share the same structure: a centered Column, 
+a header Text using MaterialTheme.typography.headlineMedium and colorScheme.primary, then a subtitle in bodyMedium. Using those theme tokens instead of hardcoded values is what keeps screens consistent even if the theme changes later.
 
 <!-- Be specific. Don't write "I learned about ViewModels." Write what specifically clicked —
      what was confusing before, what made it make sense, and how you'd explain it to someone else.
@@ -58,6 +70,10 @@
 ---
 
 ## One Thing I'm Still Confused About
+
+In RegisterScreen.kt, I used LaunchedEffect(registerState) to call onRegisterSuccess() when registerState becomes Success. I copied this pattern from LoginScreen.kt and it works, but I don't fully understand why we need LaunchedEffect 
+here instead of just calling onRegisterSuccess() directly inside the button's onClick. I think it has to do with registerState being a StateFlow that updates asynchronously after the API call finishes, but I'd like to understand 
+more precisely when LaunchedEffect is necessary versus when a direct call would work.
 
 <!-- Be honest. This is the most useful part of the reflection for me — it tells me where to
      spend more time in class. You will not lose points for being confused. -->
