@@ -10,8 +10,7 @@
 <!-- Paste a link to your commits for this week. The easiest way: go to your repo on GitHub,
      click "commits", and copy the URL after filtering by your name or branch. -->
 
-**Link:** 
-
+**Link:**
 
 ---
 
@@ -25,7 +24,6 @@
 
 
 **Link to my review:**
-
 
 ### What I Looked At
 
