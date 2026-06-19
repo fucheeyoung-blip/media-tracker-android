@@ -31,7 +31,7 @@ class RegisterViewModel(
 
     fun onSignUpClicked() {
         viewModelScope.launch {
-            userRepository.createAccount(
+            userRepository.register(
                 displayName = _displayName.value,
                 username = _username.value,
                 email = _email.value,

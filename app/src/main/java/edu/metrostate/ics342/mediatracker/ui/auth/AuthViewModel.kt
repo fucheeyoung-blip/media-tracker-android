@@ -3,16 +3,18 @@ package edu.metrostate.ics342.mediatracker.ui.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import edu.metrostate.ics342.mediatracker.R
+import edu.metrostate.ics342.mediatracker.data.RegisterResult
 import edu.metrostate.ics342.mediatracker.data.UserRepository
+import edu.metrostate.ics342.mediatracker.data.network.DefaultUserRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class AuthViewModel : ViewModel() {
-
-    private val repository = UserRepository()
+class AuthViewModel(
+    private val repository: UserRepository = DefaultUserRepository()
+) : ViewModel() {
 
     sealed class AuthUiState {
         object Idle    : AuthUiState()
@@ -21,7 +23,7 @@ class AuthViewModel : ViewModel() {
         data class Error(val msgResId: Int) : AuthUiState()
     }
 
-    // ── Login ─────────────────────────────────────────────────────────────
+    // Login
 
     private val _email    = MutableStateFlow("")
     val email: StateFlow<String> = _email.asStateFlow()
@@ -49,7 +51,7 @@ class AuthViewModel : ViewModel() {
 
     fun resetLoginState() { _loginState.value = AuthUiState.Idle }
 
-    // ── Register ──────────────────────────────────────────────────────────
+    // Register
 
     private val _registerState = MutableStateFlow<AuthUiState>(AuthUiState.Idle)
     val registerState: StateFlow<AuthUiState> = _registerState.asStateFlow()
@@ -62,20 +64,19 @@ class AuthViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             _registerState.value = AuthUiState.Loading
-            try {
-                repository.createAccount(
-                    displayName = displayName,
-                    username = username,
-                    email = email,
-                    password = password
-                )
-                _registerState.value = AuthUiState.Success
-            } catch (e: Exception) {
-                _registerState.value = AuthUiState.Error(R.string.error_empty_credentials)
+            when (repository.register(
+                email = email,
+                password = password,
+                username = username,
+                displayName = displayName
+            )) {
+                RegisterResult.Success -> _registerState.value = AuthUiState.Success
+                RegisterResult.Conflict -> _registerState.value = AuthUiState.Error(R.string.error_empty_credentials)
+                RegisterResult.NetworkError -> _registerState.value = AuthUiState.Error(R.string.error_empty_credentials)
+                RegisterResult.UnknownError -> _registerState.value = AuthUiState.Error(R.string.error_empty_credentials)
             }
         }
     }
 
     fun resetRegisterState() { _registerState.value = AuthUiState.Idle }
 }
-
