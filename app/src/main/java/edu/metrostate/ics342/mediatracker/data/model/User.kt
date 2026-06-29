@@ -1,5 +1,8 @@
 package edu.metrostate.ics342.mediatracker.data.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class UserProfile(
     val id: String,
     val email: String,
@@ -10,7 +13,6 @@ data class UserProfile(
     val followerCount: Int = 0,
     val followingCount: Int = 0,
     val trackedCount: Int = 0,
-    /** Whether the currently authenticated user follows this profile. Null on /users/me. */
     val isFollowing: Boolean? = null,
     val createdAt: String? = null
 )
