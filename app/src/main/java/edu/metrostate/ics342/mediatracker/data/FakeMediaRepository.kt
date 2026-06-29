@@ -1,6 +1,7 @@
 package edu.metrostate.ics342.mediatracker.data
 
 import edu.metrostate.ics342.mediatracker.data.model.*
+import edu.metrostate.ics342.mediatracker.data.model.Media
 
 /**
  * Hardcoded fake data used throughout the app while real API integration is built out.
