@@ -37,3 +37,7 @@ val DarkPrimary          = Color(0xFF818CF8)
 val DarkOnPrimary        = Color(0xFF1E1B4B)
 val DarkPrimaryContainer = Color(0xFF2D2B6E)
 val DarkOnPrimaryContainer = Color(0xFFE0E7FF)
+
+// Movie-specific
+val MovieContainer = Color(0xFFFCE7F3)
+val OnMovieContainer = Color(0xFFDC2626)

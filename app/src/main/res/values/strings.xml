@@ -89,4 +89,18 @@
     <string name="media_unknown_director">Unknown Director</string>
     <string name="media_unknown_creator">Unknown Creator</string>
 
+    <string name="error_empty_fields">Please fill in all fields.</string>
+    <string name="error_passwords_mismatch">Passwords do not match.</string>
+    <string name="error_email_or_username_taken">Email or username is already taken.</string>
+    <string name="error_network">Network error. Please try again.</string>
+    <string name="error_generic">Something went wrong. Please try again.</string>
+
+    <string name="search_hint">Search for movies, books, shows…</string>
+    <string name="search_results_count">%1$d results</string>
+
+    <string name="search_title">Search</string>
+    <string name="popular_this_week">POPULAR THIS WEEK</string>
+
+
+
 </resources>

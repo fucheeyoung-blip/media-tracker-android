@@ -13,6 +13,7 @@ data class Media(
     val network: String? = null,      // shows (streaming / broadcast platform)
     val coverUrl: String? = null,
     val publishedYear: Int? = null,
+    val pageCount: Int? = null,       // books
     val averageRating: Float = 0f,
     val ratingCount: Int = 0,
     val genres: List<String> = emptyList()
