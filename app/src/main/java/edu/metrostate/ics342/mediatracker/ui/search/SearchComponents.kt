@@ -22,6 +22,9 @@ import edu.metrostate.ics342.mediatracker.data.model.Media
 import edu.metrostate.ics342.mediatracker.data.model.creatorCredit
 import edu.metrostate.ics342.mediatracker.theme.MovieContainer
 import edu.metrostate.ics342.mediatracker.theme.OnMovieContainer
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.withStyle
 
 @Composable
 fun MediaTypeFilterChips(
@@ -39,12 +42,17 @@ fun MediaTypeFilterChips(
     Row(
         modifier = modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
+
     ) {
         types.forEach { (type, labelRes) ->
             FilterChip(
                 selected = selectedType == type,
                 onClick = { onTypeSelect(type) },
-                label = { Text(stringResource(labelRes)) }
+                label = { Text(stringResource(labelRes)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             )
         }
     }
@@ -119,13 +127,16 @@ fun MediaResultCard(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = buildString {
-                        append("★ ${"%.1f".format(media.averageRating)}")
-                        append(" · ${media.mediaType.replaceFirstChar { it.uppercase() }}")
-                        media.publishedYear?.let { append(" · $it") }
+                    text = buildAnnotatedString {
+                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary)) {
+                            append("★ ${"%.1f".format(media.averageRating)}")
+                        }
+                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
+                            append(" · ${media.mediaType.replaceFirstChar { it.uppercase() }}")
+                            media.publishedYear?.let { append(" · $it") }
+                        }
                     },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.secondary
+                    style = MaterialTheme.typography.labelSmall
                 )
             }
         }

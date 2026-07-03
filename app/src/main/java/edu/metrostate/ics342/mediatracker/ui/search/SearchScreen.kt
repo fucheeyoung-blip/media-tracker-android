@@ -65,7 +65,7 @@ fun SearchScreen(
         Text(
             text = stringResource(R.string.popular_this_week),
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp)
         )

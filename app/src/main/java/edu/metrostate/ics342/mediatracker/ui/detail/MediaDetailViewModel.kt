@@ -1,15 +1,24 @@
 package edu.metrostate.ics342.mediatracker.ui.detail
 
 import androidx.lifecycle.ViewModel
+import edu.metrostate.ics342.mediatracker.data.model.Media
+import edu.metrostate.ics342.mediatracker.data.model.Review
+import edu.metrostate.ics342.mediatracker.data.fakeSearchResults
+import edu.metrostate.ics342.mediatracker.data.network.fakeReviews
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class MediaDetailViewModel : ViewModel() {
-    // TODO (Week 7): Accept mediaId, call GET /media/{id}, expose MediaDetail state.
-    // Also call GET /library to load current status for this item.
-    private val _mediaId = MutableStateFlow(-1)
-    val mediaId: StateFlow<Int> = _mediaId.asStateFlow()
 
-    fun setMediaId(id: Int) { _mediaId.value = id }
+    private val _media = MutableStateFlow<Media?>(null)
+    val media: StateFlow<Media?> = _media.asStateFlow()
+
+    private val _reviews = MutableStateFlow<List<Review>>(emptyList())
+    val reviews: StateFlow<List<Review>> = _reviews.asStateFlow()
+
+    fun setMediaId(id: Int) {
+        _media.value = fakeSearchResults.firstOrNull { it.id == id }
+        _reviews.value = fakeReviews.filter { it.mediaId == id }
+    }
 }
