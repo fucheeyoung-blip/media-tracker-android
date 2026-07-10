@@ -1,7 +1,6 @@
 package edu.metrostate.ics342.mediatracker.ui.detail
 
-import androidx.compose.runtime.State
-import androidx.compose.runtime.getValue
+import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,54 +21,76 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import edu.metrostate.ics342.mediatracker.R
+import edu.metrostate.ics342.mediatracker.data.model.LibraryItem
 import edu.metrostate.ics342.mediatracker.data.model.Media
 import edu.metrostate.ics342.mediatracker.data.model.Review
 import edu.metrostate.ics342.mediatracker.data.model.creatorCredit
 import edu.metrostate.ics342.mediatracker.theme.MovieContainer
 import edu.metrostate.ics342.mediatracker.theme.OnMovieContainer
 
-
-// ── STUB — Students build this in Week 7 ─────────────────────────────────────
-//
-// Week 7 task: Build the Media Detail screen.
-//   1. Receive mediaId from the navigation argument (typed Int — see NavGraph).
-//   2. Call GET /media/{mediaId} to load full details.
-//   3. Display: cover image, title, creator credit, metadata grid, genre chips,
-//      average rating, description, and a library status control.
-//   4. Display the reviews list from GET /reviews?mediaId={id}.
-//   5. Handle loading and error states (full-screen — no half-built screens).
 @Composable
 fun MediaDetailScreen(
     mediaId: Int,
     onNavigateBack: () -> Unit,
     onWriteReview: (Int) -> Unit,
-    viewModel: MediaDetailViewModel = viewModel()
+    viewModel: MediaDetailViewModel = viewModel(
+        factory = MediaDetailViewModel.factory(
+            LocalContext.current.applicationContext as Application
+        )
+    )
 ) {
     LaunchedEffect(mediaId) { viewModel.setMediaId(mediaId) }
 
-    val media   by viewModel.media.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val reviews by viewModel.reviews.collectAsState()
+    val isAddingToLibrary by viewModel.isAddingToLibrary.collectAsState()
 
-    if (media == null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+    when (val state = uiState) {
+        is MediaDetailUiState.Loading -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
         }
-        return
+        is MediaDetailUiState.Error -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    Text(
+                        text = state.message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Button(onClick = { viewModel.retry() }) {
+                        Text("Retry")
+                    }
+                }
+            }
+        }
+        is MediaDetailUiState.Success -> {
+            MediaDetailContent(
+                media             = state.media,
+                libraryItem       = state.libraryItem,
+                reviews           = reviews,
+                isAddingToLibrary = isAddingToLibrary,
+                onNavigateBack    = onNavigateBack,
+                onWantToClick     = { viewModel.onWantToTapped() },
+                onWriteReview     = { onWriteReview(mediaId) }
+            )
+        }
     }
-
-    MediaDetailContent(
-        media          = media!!,
-        reviews        = reviews,
-        onNavigateBack = onNavigateBack,
-        onWriteReview  = { onWriteReview(mediaId) }
-    )
 }
 
 @Composable
 private fun MediaDetailContent(
     media: Media,
+    libraryItem: LibraryItem?,
     reviews: List<Review>,
+    isAddingToLibrary: Boolean,
     onNavigateBack: () -> Unit,
+    onWantToClick: () -> Unit,
     onWriteReview: () -> Unit
 ) {
     val context = LocalContext.current
@@ -171,12 +192,27 @@ private fun MediaDetailContent(
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            val alreadyInLibrary = libraryItem != null
             Button(
-                onClick = {},
+                onClick = onWantToClick,
+                enabled = !isAddingToLibrary && !alreadyInLibrary,
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(50)
             ) {
-                Text("+ Want To")
+                if (isAddingToLibrary) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text(
+                        when {
+                            alreadyInLibrary -> "✓ ${libraryItem!!.status.toApiString().replace('_', ' ')}"
+                            else             -> "+ Want To"
+                        }
+                    )
+                }
             }
             OutlinedButton(
                 onClick = {},
@@ -196,20 +232,21 @@ private fun MediaDetailContent(
         Spacer(Modifier.height(20.dp))
 
         // About
-        Text(
-            text = "ABOUT",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = "A story about ${media.title} by ${media.creatorCredit(context)}...",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-
-        Spacer(Modifier.height(16.dp))
+        media.description?.let { description ->
+            Text(
+                text = "ABOUT",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            Spacer(Modifier.height(16.dp))
+        }
 
         // Metadata grid
         Row(
@@ -221,6 +258,12 @@ private fun MediaDetailContent(
             MetadataCard("YEAR", media.publishedYear?.toString() ?: "—", Modifier.weight(1f))
             if (media.mediaType == "book") {
                 MetadataCard("PAGES", media.pageCount?.toString() ?: "—", Modifier.weight(1f))
+            }
+            if (media.mediaType == "movie") {
+                MetadataCard("RUNTIME", media.runtimeMinutes?.let { "${it}m" } ?: "—", Modifier.weight(1f))
+            }
+            if (media.mediaType == "show") {
+                MetadataCard("SEASONS", media.seasonCount?.toString() ?: "—", Modifier.weight(1f))
             }
             MetadataCard("GENRE", media.genres.firstOrNull() ?: "—", Modifier.weight(1f))
             if (media.network != null) {

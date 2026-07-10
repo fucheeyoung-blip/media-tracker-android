@@ -2,7 +2,9 @@ package edu.metrostate.ics342.mediatracker.data.model
 
 import android.content.Context
 import edu.metrostate.ics342.mediatracker.R
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class Media(
     val id: Int,
     val mediaType: String, // "book", "movie", or "show"
@@ -14,6 +16,10 @@ data class Media(
     val coverUrl: String? = null,
     val publishedYear: Int? = null,
     val pageCount: Int? = null,       // books
+    val runtimeMinutes: Int? = null,  // movies
+    val seasonCount: Int? = null,     // shows
+    val episodeCount: Int? = null,    // shows
+    val description: String? = null,
     val averageRating: Float = 0f,
     val ratingCount: Int = 0,
     val genres: List<String> = emptyList()

@@ -22,7 +22,10 @@ import edu.metrostate.ics342.mediatracker.ui.profile.MyProfileScreen
 import edu.metrostate.ics342.mediatracker.ui.profile.UserProfileScreen
 import edu.metrostate.ics342.mediatracker.ui.review.WriteReviewScreen
 import edu.metrostate.ics342.mediatracker.ui.search.SearchScreen
+import edu.metrostate.ics342.mediatracker.ui.search.SearchResultsScreen
 import edu.metrostate.ics342.mediatracker.ui.settings.SettingsScreen
+import java.net.URLDecoder
+import java.net.URLEncoder
 
 private val bottomNavRoutes = setOf(
     Routes.ACTIVITY_FEED,
@@ -80,6 +83,23 @@ fun MediaTrackerNavGraph(navController: NavHostController) {
 
             composable(Routes.SEARCH) {
                 SearchScreen(
+                    onMediaClick = { mediaId -> navController.navigate("media_detail/$mediaId") },
+                    onSearch     = { query ->
+                        val encoded = URLEncoder.encode(query, "UTF-8")
+                        navController.navigate("search_results/$encoded")
+                    }
+                )
+            }
+
+            composable(
+                route     = Routes.SEARCH_RESULTS,
+                arguments = listOf(navArgument("query") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val rawQuery = backStackEntry.arguments?.getString("query") ?: ""
+                val query = URLDecoder.decode(rawQuery, "UTF-8")
+                SearchResultsScreen(
+                    initialQuery = query,
+                    onBack       = { navController.popBackStack() },
                     onMediaClick = { mediaId -> navController.navigate("media_detail/$mediaId") }
                 )
             }
