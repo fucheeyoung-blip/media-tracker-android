@@ -1,20 +1,35 @@
 package edu.metrostate.ics342.mediatracker.ui.auth
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import edu.metrostate.ics342.mediatracker.R
+import edu.metrostate.ics342.mediatracker.data.LoginResult
 import edu.metrostate.ics342.mediatracker.data.RegisterResult
+import edu.metrostate.ics342.mediatracker.data.SessionRepository
 import edu.metrostate.ics342.mediatracker.data.UserRepository
+import edu.metrostate.ics342.mediatracker.data.datastore.DefaultSessionRepository
 import edu.metrostate.ics342.mediatracker.data.network.DefaultUserRepository
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class AuthViewModel(
-    private val repository: UserRepository = DefaultUserRepository()
+    private val repository: UserRepository = DefaultUserRepository(),
+    private val sessionRepository: SessionRepository
 ) : ViewModel() {
+
+    companion object {
+        fun factory(context: android.content.Context): ViewModelProvider.Factory =
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    val sessionRepository = DefaultSessionRepository(context.applicationContext)
+                    return AuthViewModel(sessionRepository = sessionRepository) as T
+                }
+            }
+    }
 
     sealed class AuthUiState {
         object Idle    : AuthUiState()
@@ -40,11 +55,27 @@ class AuthViewModel(
     fun onLoginClick() {
         viewModelScope.launch {
             _loginState.value = AuthUiState.Loading
-            delay(800)
-            if (_email.value.isNotBlank() && _password.value.isNotBlank()) {
-                _loginState.value = AuthUiState.Success
-            } else {
+
+            if (_email.value.isBlank() || _password.value.isBlank()) {
                 _loginState.value = AuthUiState.Error(R.string.error_empty_credentials)
+                return@launch
+            }
+
+            when (val result = repository.login(_email.value, _password.value)) {
+                is LoginResult.Success -> {
+                    sessionRepository.saveSession(
+                        accessToken = result.accessToken,
+                        refreshToken = result.refreshToken,
+                        user = result.user
+                    )
+                    _loginState.value = AuthUiState.Success
+                }
+                LoginResult.InvalidCredentials ->
+                    _loginState.value = AuthUiState.Error(R.string.error_empty_credentials)
+                LoginResult.NetworkError ->
+                    _loginState.value = AuthUiState.Error(R.string.error_empty_credentials)
+                LoginResult.UnknownError ->
+                    _loginState.value = AuthUiState.Error(R.string.error_empty_credentials)
             }
         }
     }
