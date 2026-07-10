@@ -12,7 +12,7 @@
 
 **Link:** 
 
-
+https://github.com/fucheeyoung-blip/media-tracker-android/pull/9/changes
 
 ---
 
@@ -28,11 +28,14 @@ Fasika Yifru
 
 **Link to my review:**
 
+https://github.com/FasikaYifru/fy-media-tracker-android/pull/10
 
 
 
 ### What I Looked At
 
+I reviewed Fasika's PR that adds a new getMediaById API endpoint. I focused on three files: MediaApiService.kt (the new Retrofit endpoint definition), 
+DefaultMediaRepository.kt (the repository function that calls it), and RetrofitInstance.kt, which had a larger set of changes involving BuildConfig.
 
 
 <!-- Walk through the code you reviewed. What was the PR trying to do? Which files or
@@ -40,6 +43,10 @@ Fasika Yifru
 
 ### What I Noticed
 
+In DefaultMediaRepository.getMediaById, the function returns Media? null if the response isn't successful. This means a 404 (media not found) 
+and a network failure both collapse into the same null result, so the caller can't tell them apart or show a different message for each case. 
+I ran into this exact issue in my own code this week my DefaultMediaDetailRepository originally had the same problem, and I fixed it by using a sealed MediaDetailResult 
+class with Success and Error(message) cases instead of returning a nullable type. I'd suggest Fasika consider a similar pattern here so the UI layer can distinguish 'not found' from 'network error' and show the right message to the user.
 
 
 
@@ -49,7 +56,9 @@ Fasika Yifru
 
 ### Comments I Left
 
-
+I left a comment on DefaultMediaRepository.kt suggesting a sealed result type (Success/Error) instead of a nullable return, so 404s and network failures aren't indistinguishable to the caller. 
+I also left a positive comment on the RetrofitInstance.kt changes using BuildConfig to adjust configuration (e.g., logging level) 
+based on build type is a good practice for keeping verbose logs out of release builds.
 
 
 
@@ -60,6 +69,9 @@ Fasika Yifru
 
 ## One Thing I Understood More Deeply
 
+I finally understood why my login was returning a 401 even though my AuthInterceptor looked correct. The interceptor was fine the real problem was that my AuthViewModel.onLoginClick() 
+was never actually calling the login API or saving the session token; it was a stubbed placeholder that just checked if the fields were non-blank. 
+This clicked for me: an interceptor can only attach a token if something upstream actually saved one first.
 
 
 <!-- Be specific. Don't write "I learned about ViewModels." Write what specifically clicked —
@@ -70,6 +82,9 @@ Fasika Yifru
 
 ## One Thing I'm Still Confused About
 
+I'm still trying to figure out why my search screen freezes the whole app when I type 
+I know my SearchViewModel is currently using fake hardcoded data instead of the real API, 
+but I haven't pinpointed what's actually blocking the main thread yet.
 
 
 <!-- Be honest. This is the most useful part of the reflection for me — it tells me where to
