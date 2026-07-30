@@ -17,13 +17,17 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import edu.metrostate.ics342.mediatracker.R
+import android.app.Application
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun SearchResultsScreen(
     initialQuery: String,
     onBack: () -> Unit,
     onMediaClick: (Int) -> Unit,
-    viewModel: SearchResultsViewModel = viewModel()
+    viewModel: SearchResultsViewModel = viewModel(
+        factory = SearchResultsViewModel.factory(LocalContext.current.applicationContext as Application)
+    )
 ) {
     var searchBarQuery by remember { mutableStateOf(initialQuery) }
     val results by viewModel.results.collectAsState()
@@ -83,7 +87,10 @@ fun SearchResultsScreen(
             results.forEach { media ->
                 MediaResultCard(
                     media = media,
-                    onClick = { onMediaClick(media.id) }
+                    onClick = {
+                        android.util.Log.d("SearchDebug", "Tapped media id=${media.id}, title=${media.title}")
+                        onMediaClick(media.id)
+                    }
                 )
             }
         }

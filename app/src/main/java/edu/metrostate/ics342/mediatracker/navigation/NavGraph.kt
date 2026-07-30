@@ -5,6 +5,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -17,6 +19,8 @@ import edu.metrostate.ics342.mediatracker.ui.auth.RegisterScreen
 import edu.metrostate.ics342.mediatracker.ui.connections.ConnectionsScreen
 import edu.metrostate.ics342.mediatracker.ui.detail.MediaDetailScreen
 import edu.metrostate.ics342.mediatracker.ui.library.LibraryScreen
+import edu.metrostate.ics342.mediatracker.ui.library.PriorityScreen
+import edu.metrostate.ics342.mediatracker.ui.library.PriorityViewModel
 import edu.metrostate.ics342.mediatracker.ui.profile.EditProfileScreen
 import edu.metrostate.ics342.mediatracker.ui.profile.MyProfileScreen
 import edu.metrostate.ics342.mediatracker.ui.profile.UserProfileScreen
@@ -106,7 +110,21 @@ fun MediaTrackerNavGraph(navController: NavHostController) {
 
             composable(Routes.LIBRARY) {
                 LibraryScreen(
-                    onMediaClick = { mediaId -> navController.navigate("media_detail/$mediaId") }
+                    onMediaClick     = { mediaId -> navController.navigate("media_detail/$mediaId") },
+                    onAddClick       = { navController.navigate(Routes.SEARCH) },
+                    onViewPriorities = { navController.navigate(Routes.PRIORITIES) }
+                )
+            }
+
+            composable(Routes.PRIORITIES) {
+                val context = LocalContext.current
+                val application = context.applicationContext as android.app.Application
+                val priorityViewModel: PriorityViewModel =
+                    viewModel(factory = PriorityViewModel.factory(application))
+
+                PriorityScreen(
+                    viewModel = priorityViewModel,
+                    onBack    = { navController.popBackStack() }
                 )
             }
 

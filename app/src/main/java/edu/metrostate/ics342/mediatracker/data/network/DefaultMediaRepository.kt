@@ -1,7 +1,9 @@
 package edu.metrostate.ics342.mediatracker.data.network
 
 import edu.metrostate.ics342.mediatracker.data.SessionRepository
+import edu.metrostate.ics342.mediatracker.data.model.Favorite
 import edu.metrostate.ics342.mediatracker.data.model.LibraryItem
+import edu.metrostate.ics342.mediatracker.data.model.LibraryStatus
 import edu.metrostate.ics342.mediatracker.data.model.Media
 import edu.metrostate.ics342.mediatracker.data.model.Review
 
@@ -46,6 +48,47 @@ class DefaultMediaDetailRepository(sessionRepository: SessionRepository) {
             if (response.isSuccessful) response.body() ?: emptyList() else emptyList()
         } catch (e: Exception) {
             emptyList()
+        }
+    }
+
+    suspend fun getFavoriteStatus(mediaId: Int): Favorite? {
+        return try {
+            val response = api.getFavoriteStatus(mediaId)
+            if (response.isSuccessful) response.body() else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    // Throws on genuine failure so callers can roll back optimistic updates.
+    // A 409 (already added/favorited) is treated as success, not a rollback trigger.
+    suspend fun addToLibrary(mediaId: Int, status: LibraryStatus): LibraryItem {
+        val response = api.addToLibrary(AddToLibraryRequest(mediaId, status.toApiString()))
+        if (response.isSuccessful) {
+            return response.body() ?: throw Exception("No data returned.")
+        }
+        if (response.code() == 409) {
+            return getLibraryStatus(mediaId) ?: throw Exception("Already added but couldn't confirm state.")
+        }
+        throw Exception("Something went wrong (${response.code()}).")
+    }
+
+    suspend fun addFavorite(mediaId: Int): Favorite {
+        val response = api.addFavorite(AddFavoriteRequest(mediaId))
+        if (response.isSuccessful) {
+            return response.body() ?: throw Exception("No data returned.")
+        }
+        if (response.code() == 409) {
+            return getFavoriteStatus(mediaId) ?: throw Exception("Already favorited but couldn't confirm state.")
+        }
+        throw Exception("Something went wrong (${response.code()}).")
+    }
+
+    suspend fun removeFavorite(mediaId: Int) {
+        val response = api.removeFavorite(mediaId)
+        if (!response.isSuccessful && response.code() != 404) {
+            // 404 means it's already gone — fine, treat as success.
+            throw Exception("Something went wrong (${response.code()}).")
         }
     }
 }

@@ -7,6 +7,7 @@ object Routes {
     const val SEARCH         = "search"
     const val SEARCH_RESULTS = "search_results/{query}"
     const val LIBRARY        = "library"
+    const val PRIORITIES     = "priorities"
     const val CONNECTIONS    = "connections"
     const val MY_PROFILE     = "my_profile"
     const val SETTINGS       = "settings"
