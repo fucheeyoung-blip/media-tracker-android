@@ -1,131 +1,160 @@
 package edu.metrostate.ics342.mediatracker.ui.library
 
+import android.app.Application
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import edu.metrostate.ics342.mediatracker.data.model.LibraryItem
 import edu.metrostate.ics342.mediatracker.data.model.LibraryStatus
 import edu.metrostate.ics342.mediatracker.data.model.creatorCredit
+import edu.metrostate.ics342.mediatracker.theme.PrimaryContainer
+import edu.metrostate.ics342.mediatracker.theme.OnPrimaryContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
     onMediaClick: (Int) -> Unit,
-    viewModel: LibraryViewModel = viewModel()
+    onAddClick: () -> Unit = {},
+    viewModel: LibraryViewModel = viewModel(
+        factory = LibraryViewModel.factory(LocalContext.current.applicationContext as Application)
+    )
 ) {
-    val items     by viewModel.libraryItems.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-
+    val uiState by viewModel.uiState.collectAsState()
     val selectedStatus by viewModel.filterState.collectAsState()
-    var selectedType   by remember { mutableStateOf("all") }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(title = { Text(stringResource(edu.metrostate.ics342.mediatracker.R.string.library_title)) })
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .horizontalScroll( state = rememberScrollState()),
-
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            listOf(
-                "all"   to edu.metrostate.ics342.mediatracker.R.string.filter_all,
-                "book"  to edu.metrostate.ics342.mediatracker.R.string.filter_books,
-                "movie" to edu.metrostate.ics342.mediatracker.R.string.filter_movies,
-                "show"  to edu.metrostate.ics342.mediatracker.R.string.filter_shows
-            )
-                .forEach { (key, labelRes) ->
-                    FilterChip(
-                        selected = selectedType == key,
-                        onClick  = { selectedType = key },
-                        label    = { Text(stringResource(labelRes)) }
-                    )
+    Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
+        TopAppBar(
+            title = { Text("My Library") },
+            actions = {
+                Button(
+                    onClick = onAddClick,
+                    shape = RoundedCornerShape(50),
+                    modifier = Modifier.padding(end = 12.dp)
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Add")
                 }
-        }
+            }
+        )
 
         SingleChoiceSegmentedButtonRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             LibraryStatus.values().forEachIndexed { index, status ->
                 SegmentedButton(
-                    shape    = SegmentedButtonDefaults.itemShape(
-                        index = index, count = LibraryStatus.values().size),
+                    shape = RoundedCornerShape(
+                        topStart = if (index == 0) 50.dp else 0.dp,
+                        bottomStart = if (index == 0) 50.dp else 0.dp,
+                        topEnd = if (index == LibraryStatus.values().lastIndex) 50.dp else 0.dp,
+                        bottomEnd = if (index == LibraryStatus.values().lastIndex) 50.dp else 0.dp
+                    ),
                     selected = selectedStatus == status,
                     onClick  = { viewModel.updateFilter(status) },
-                    label    = { Text(stringResource(status.labelRes)) }
+                    label    = { Text(stringResource(status.labelRes)) },
+                    icon = {
+                        if (selectedStatus == status) {
+                            Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                        }
+                    },
+                    colors = SegmentedButtonDefaults.colors(
+                        activeContainerColor = PrimaryContainer,
+                        activeContentColor   = OnPrimaryContainer
+                    )
                 )
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
-
-        if (isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        when (val state = uiState) {
+            is LibraryUiState.Loading -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-            return@Column
-        }
 
-        val filteredItems = items
-            .filter { it.status == selectedStatus }
-            .filter { selectedType == "all" || it.media.mediaType == selectedType }
-
-        if (filteredItems.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    stringResource(edu.metrostate.ics342.mediatracker.R.string.library_empty),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
+            is LibraryUiState.Error -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            state.message,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Button(onClick = { viewModel.loadLibrary() }) {
+                            Text("Retry")
+                        }
+                    }
+                }
             }
-            return@Column
-        }
 
-        Text(
-            if (filteredItems.size == 1) stringResource(edu.metrostate.ics342.mediatracker.R.string.library_item_count, filteredItems.size)
-            else stringResource(edu.metrostate.ics342.mediatracker.R.string.library_items_count, filteredItems.size),
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            style    = MaterialTheme.typography.labelMedium,
-            color    = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+            is LibraryUiState.Success -> {
+                val libraryItems = state.items
 
-        LazyColumn(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(filteredItems, key = { it.mediaId }) { item ->
-                LibraryItemCard(
-                    item           = item,
-                    onClick        = { onMediaClick(item.mediaId) },
-                    onRemove       = { viewModel.removeItem(item.mediaId) },
-                    onStatusChange = { newStatus -> viewModel.updateStatus(item.mediaId, newStatus) }
-                )
+                if (libraryItems.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Nothing in '${stringResource(selectedStatus.labelRes)}' yet.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                } else {
+                    Text(
+                        if (libraryItems.size == 1)
+                            stringResource(edu.metrostate.ics342.mediatracker.R.string.library_item_count, libraryItems.size)
+                        else
+                            stringResource(edu.metrostate.ics342.mediatracker.R.string.library_items_count, libraryItems.size),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        style    = MaterialTheme.typography.labelMedium,
+                        color    = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    LazyColumn(
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(libraryItems, key = { it.mediaId }) { item ->
+                            LibraryItemCard(
+                                item           = item,
+                                onClick        = { onMediaClick(item.mediaId) },
+                                onRemove       = { viewModel.removeItem(item.mediaId) },
+                                onStatusChange = { newStatus -> viewModel.updateStatus(item.mediaId, newStatus) }
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -165,13 +194,14 @@ private fun LibraryItemCard(
     Card(
         modifier  = Modifier.fillMaxWidth().clickable { onClick() },
         shape     = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .size(64.dp, 90.dp)
-                    .clip(RoundedCornerShape(6.dp)),
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 if (item.media.coverUrl != null) {
@@ -182,13 +212,15 @@ private fun LibraryItemCard(
                         modifier          = Modifier.fillMaxSize()
                     )
                 } else {
-                    Surface(color = MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier.fillMaxSize()) {
+                    val (bgColor, emoji) = when (item.media.mediaType) {
+                        "book"  -> Color(0xFFD8D3F7) to "📖"
+                        "movie" -> Color(0xFFF7D3E0) to "🎬"
+                        "show"  -> Color(0xFFF7EBD3) to "📺"
+                        else    -> MaterialTheme.colorScheme.surfaceVariant to "?"
+                    }
+                    Surface(color = bgColor, modifier = Modifier.fillMaxSize()) {
                         Box(contentAlignment = Alignment.Center) {
-                            Text(when (item.media.mediaType) {
-                                "book" -> "📖"; "movie" -> "🎬"; "show" -> "📺"
-                                else -> "?"
-                            }, style = MaterialTheme.typography.titleLarge)
+                            Text(emoji, style = MaterialTheme.typography.titleLarge)
                         }
                     }
                 }
@@ -207,7 +239,14 @@ private fun LibraryItemCard(
                 SuggestionChip(
                     onClick = { statusDialogVisible = true },
                     label   = { Text(stringResource(item.status.labelRes),
-                        style = MaterialTheme.typography.labelSmall) }
+                        style = MaterialTheme.typography.labelSmall) },
+                    colors = SuggestionChipDefaults.suggestionChipColors(
+                        containerColor = Color(0xFFF3F1F7)
+                    ),
+                    border = SuggestionChipDefaults.suggestionChipBorder(
+                        enabled = true,
+                        borderColor = Color(0xFFE0DDE8)
+                    )
                 )
             }
 
