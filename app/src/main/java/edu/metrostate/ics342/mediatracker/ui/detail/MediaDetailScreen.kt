@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -44,6 +45,7 @@ fun MediaDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val reviews by viewModel.reviews.collectAsState()
     val isAddingToLibrary by viewModel.isAddingToLibrary.collectAsState()
+    val isSavingFavorite by viewModel.isSavingFavorite.collectAsState()
 
     when (val state = uiState) {
         is MediaDetailUiState.Loading -> {
@@ -73,10 +75,13 @@ fun MediaDetailScreen(
             MediaDetailContent(
                 media             = state.media,
                 libraryItem       = state.libraryItem,
+                isFavorited       = state.isFavorited,
                 reviews           = reviews,
                 isAddingToLibrary = isAddingToLibrary,
+                isSavingFavorite  = isSavingFavorite,
                 onNavigateBack    = onNavigateBack,
                 onWantToClick     = { viewModel.onWantToTapped() },
+                onSaveClick       = { viewModel.onSaveTapped() },
                 onWriteReview     = { onWriteReview(mediaId) }
             )
         }
@@ -87,10 +92,13 @@ fun MediaDetailScreen(
 private fun MediaDetailContent(
     media: Media,
     libraryItem: LibraryItem?,
+    isFavorited: Boolean,
     reviews: List<Review>,
     isAddingToLibrary: Boolean,
+    isSavingFavorite: Boolean,
     onNavigateBack: () -> Unit,
     onWantToClick: () -> Unit,
+    onSaveClick: () -> Unit,
     onWriteReview: () -> Unit
 ) {
     val context = LocalContext.current
@@ -215,17 +223,25 @@ private fun MediaDetailContent(
                 }
             }
             OutlinedButton(
-                onClick = {},
+                onClick = onSaveClick,
+                enabled = !isSavingFavorite && !isFavorited,
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(50)
             ) {
-                Icon(
-                    Icons.Outlined.FavoriteBorder,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(Modifier.width(4.dp))
-                Text("Save")
+                if (isSavingFavorite) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        if (isFavorited) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(if (isFavorited) "Saved" else "Save")
+                }
             }
         }
 
