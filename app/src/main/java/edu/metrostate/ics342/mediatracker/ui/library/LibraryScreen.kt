@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -36,6 +37,7 @@ import edu.metrostate.ics342.mediatracker.theme.OnPrimaryContainer
 fun LibraryScreen(
     onMediaClick: (Int) -> Unit,
     onAddClick: () -> Unit = {},
+    onViewPriorities: () -> Unit = {},
     viewModel: LibraryViewModel = viewModel(
         factory = LibraryViewModel.factory(LocalContext.current.applicationContext as Application)
     )
@@ -47,6 +49,9 @@ fun LibraryScreen(
         TopAppBar(
             title = { Text("My Library") },
             actions = {
+                IconButton(onClick = onViewPriorities) {
+                    Icon(Icons.Filled.Star, contentDescription = "Priorities")
+                }
                 Button(
                     onClick = onAddClick,
                     shape = RoundedCornerShape(50),
