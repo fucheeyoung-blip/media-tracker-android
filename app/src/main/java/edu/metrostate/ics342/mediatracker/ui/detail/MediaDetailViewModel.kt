@@ -118,7 +118,7 @@ class MediaDetailViewModel(application: Application) : AndroidViewModel(applicat
                 if (latest is MediaDetailUiState.Success) {
                     _uiState.value = latest.copy(libraryItem = null) // roll back
                 }
-                _errorMessage.value = "Couldn't add to library. Try again."
+                _errorMessage.value = "Couldn't add to library: ${e.message}"
             }
         }
     }

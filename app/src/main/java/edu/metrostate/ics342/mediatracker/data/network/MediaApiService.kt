@@ -4,6 +4,7 @@ import edu.metrostate.ics342.mediatracker.data.model.Favorite
 import edu.metrostate.ics342.mediatracker.data.model.LibraryItem
 import edu.metrostate.ics342.mediatracker.data.model.Media
 import edu.metrostate.ics342.mediatracker.data.model.Review
+import edu.metrostate.ics342.mediatracker.data.model.Priority
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -13,9 +14,23 @@ import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
+@kotlinx.serialization.Serializable
 data class AddToLibraryRequest(val mediaId: Int, val status: String)
+
+@kotlinx.serialization.Serializable
 data class AddFavoriteRequest(val mediaId: Int)
+
+@kotlinx.serialization.Serializable
 data class UpdateLibraryStatusRequest(val status: String)
+
+@kotlinx.serialization.Serializable
+data class PriorityWriteItem(
+    val mediaId: Int,
+    val priority: Int,
+    val orderIndex: Int,
+    val estimatedTimeHours: Double? = null,
+    val notes: String? = null
+)
 
 interface MediaApiService {
     @GET("media")
@@ -58,4 +73,10 @@ interface MediaApiService {
 
     @GET("reviews")
     suspend fun getReviews(@Query("mediaId") mediaId: Int): Response<List<Review>>
+
+    @GET("priorities")
+    suspend fun getPriorities(): Response<List<Priority>>
+
+    @PUT("priorities")
+    suspend fun updatePriorities(@Body request: PriorityWriteItem): Response<Priority>
 }

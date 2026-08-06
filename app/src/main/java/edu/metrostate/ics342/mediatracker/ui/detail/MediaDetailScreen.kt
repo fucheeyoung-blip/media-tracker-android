@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,43 +47,56 @@ fun MediaDetailScreen(
     val reviews by viewModel.reviews.collectAsState()
     val isAddingToLibrary by viewModel.isAddingToLibrary.collectAsState()
     val isSavingFavorite by viewModel.isSavingFavorite.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
 
-    when (val state = uiState) {
-        is MediaDetailUiState.Loading -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+    Box(modifier = Modifier.fillMaxSize()) {
+        when (val state = uiState) {
+            is MediaDetailUiState.Loading -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-        }
-        is MediaDetailUiState.Error -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(24.dp)
-                ) {
-                    Text(
-                        text = state.message,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Button(onClick = { viewModel.retry() }) {
-                        Text("Retry")
+            is MediaDetailUiState.Error -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+                        Text(
+                            text = state.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Button(onClick = { viewModel.retry() }) {
+                            Text("Retry")
+                        }
                     }
                 }
             }
+            is MediaDetailUiState.Success -> {
+                MediaDetailContent(
+                    media             = state.media,
+                    libraryItem       = state.libraryItem,
+                    isFavorited       = state.isFavorited,
+                    reviews           = reviews,
+                    isAddingToLibrary = isAddingToLibrary,
+                    isSavingFavorite  = isSavingFavorite,
+                    onNavigateBack    = onNavigateBack,
+                    onWantToClick     = { viewModel.onWantToTapped() },
+                    onSaveClick       = { viewModel.onSaveTapped() },
+                    onWriteReview     = { onWriteReview(mediaId) }
+                )
+            }
         }
-        is MediaDetailUiState.Success -> {
-            MediaDetailContent(
-                media             = state.media,
-                libraryItem       = state.libraryItem,
-                isFavorited       = state.isFavorited,
-                reviews           = reviews,
-                isAddingToLibrary = isAddingToLibrary,
-                isSavingFavorite  = isSavingFavorite,
-                onNavigateBack    = onNavigateBack,
-                onWantToClick     = { viewModel.onWantToTapped() },
-                onSaveClick       = { viewModel.onSaveTapped() },
-                onWriteReview     = { onWriteReview(mediaId) }
+
+        errorMessage?.let { msg ->
+            Text(
+                text = msg,
+                color = Color.Red,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(16.dp)
             )
         }
     }
