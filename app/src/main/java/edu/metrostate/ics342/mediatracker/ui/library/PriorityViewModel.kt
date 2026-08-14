@@ -88,7 +88,7 @@ open class PriorityViewModel(
                 _uiState.value = PriorityUiState.Success(updated)
             } catch (e: Exception) {
                 _uiState.value = PriorityUiState.Success(backup)
-                _errorMessage.value = "Couldn't update priorities. Try again."
+                _errorMessage.value = "Couldn't update priorities: ${e.message}"
             }
         }
     }
@@ -109,7 +109,7 @@ open class PriorityViewModel(
                 _uiState.value = PriorityUiState.Success(updated)
             } catch (e: Exception) {
                 _uiState.value = PriorityUiState.Success(backup)
-                _errorMessage.value = "Couldn't remove item. Try again."
+                _errorMessage.value = "Couldn't remove item: ${e.message}"
             }
         }
     }

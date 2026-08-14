@@ -24,7 +24,14 @@ data class AddFavoriteRequest(val mediaId: Int)
 data class UpdateLibraryStatusRequest(val status: String)
 
 @kotlinx.serialization.Serializable
-data class UpdatePrioritiesRequest(val priorities: List<Priority>)
+data class PriorityWriteItem(
+    val mediaId: Int,
+    val priority: Int,
+    val orderIndex: Int,
+    val estimatedTimeHours: Double? = null,
+    val notes: String? = null
+)
+
 interface MediaApiService {
     @GET("media")
     suspend fun searchMedia(
@@ -71,5 +78,5 @@ interface MediaApiService {
     suspend fun getPriorities(): Response<List<Priority>>
 
     @PUT("priorities")
-    suspend fun updatePriorities(@Body request: UpdatePrioritiesRequest): Response<List<Priority>>
+    suspend fun updatePriorities(@Body request: PriorityWriteItem): Response<Priority>
 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -28,6 +28,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import edu.metrostate.ics342.mediatracker.data.model.LibraryItem
 import edu.metrostate.ics342.mediatracker.data.model.LibraryStatus
+import edu.metrostate.ics342.mediatracker.data.model.Priority
 import edu.metrostate.ics342.mediatracker.data.model.creatorCredit
 import edu.metrostate.ics342.mediatracker.theme.PrimaryContainer
 import edu.metrostate.ics342.mediatracker.theme.OnPrimaryContainer
@@ -40,10 +41,17 @@ fun LibraryScreen(
     onViewPriorities: () -> Unit = {},
     viewModel: LibraryViewModel = viewModel(
         factory = LibraryViewModel.factory(LocalContext.current.applicationContext as Application)
+    ),
+    priorityViewModel: PriorityViewModel = viewModel(
+        factory = PriorityViewModel.factory(LocalContext.current.applicationContext as Application)
     )
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val selectedStatus by viewModel.filterState.collectAsState()
+    val priorityUiState by priorityViewModel.uiState.collectAsState()
+    val priorityError by priorityViewModel.errorMessage.collectAsState()
+
+    var priorityDialogItem by remember { mutableStateOf<LibraryItem?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
         TopAppBar(
@@ -63,6 +71,17 @@ fun LibraryScreen(
                 }
             }
         )
+
+        priorityError?.let { msg ->
+            Text(
+                text = msg,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+        }
 
         SingleChoiceSegmentedButtonRow(
             modifier = Modifier
@@ -152,10 +171,11 @@ fun LibraryScreen(
                     ) {
                         items(libraryItems, key = { it.mediaId }) { item ->
                             LibraryItemCard(
-                                item           = item,
-                                onClick        = { onMediaClick(item.mediaId) },
-                                onRemove       = { viewModel.removeItem(item.mediaId) },
-                                onStatusChange = { newStatus -> viewModel.updateStatus(item.mediaId, newStatus) }
+                                item              = item,
+                                onClick           = { onMediaClick(item.mediaId) },
+                                onRemove          = { viewModel.removeItem(item.mediaId) },
+                                onStatusChange    = { newStatus -> viewModel.updateStatus(item.mediaId, newStatus) },
+                                onAddToPriorities = { priorityDialogItem = item }
                             )
                         }
                     }
@@ -163,6 +183,99 @@ fun LibraryScreen(
             }
         }
     }
+
+    priorityDialogItem?.let { item ->
+        val existingCount = (priorityUiState as? PriorityUiState.Success)?.items?.size ?: 0
+        AddToPriorityDialog(
+            item = item,
+            onDismiss = { priorityDialogItem = null },
+            onConfirm = { level, hours, notes ->
+                priorityViewModel.addOrUpdatePriority(
+                    Priority(
+                        mediaId = item.mediaId,
+                        priority = level,
+                        orderIndex = existingCount,
+                        estimatedTimeHours = hours,
+                        notes = notes,
+                        media = item.media
+                    )
+                )
+                priorityDialogItem = null
+            }
+        )
+    }
+}
+
+@Composable
+private fun AddToPriorityDialog(
+    item: LibraryItem,
+    onDismiss: () -> Unit,
+    onConfirm: (level: Int, hours: Double?, notes: String?) -> Unit
+) {
+    var selectedLevel by remember { mutableStateOf(1) }
+    var hoursText by remember { mutableStateOf("") }
+    var notesText by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add \"${item.media.title}\" to Priorities") },
+        text = {
+            Column {
+                Text("Priority level", style = MaterialTheme.typography.labelMedium)
+                Spacer(Modifier.height(4.dp))
+
+                val levels = listOf(1 to "High", 2 to "Medium", 3 to "Low")
+                levels.forEach { (level, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedLevel = level },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selectedLevel == level,
+                            onClick = { selectedLevel = level }
+                        )
+                        Text(label)
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = hoursText,
+                    onValueChange = { hoursText = it },
+                    label = { Text("Estimated hours (optional)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = notesText,
+                    onValueChange = { notesText = it },
+                    label = { Text("Notes (optional)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onConfirm(
+                    selectedLevel,
+                    hoursText.toDoubleOrNull(),
+                    notesText.ifBlank { null }
+                )
+            }) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 @Composable
@@ -170,7 +283,8 @@ private fun LibraryItemCard(
     item: LibraryItem,
     onClick: () -> Unit,
     onRemove: () -> Unit,
-    onStatusChange: (LibraryStatus) -> Unit
+    onStatusChange: (LibraryStatus) -> Unit,
+    onAddToPriorities: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     var statusDialogVisible by remember { mutableStateOf(false) }
@@ -267,6 +381,12 @@ private fun LibraryItemCard(
                         text    = { Text(stringResource(edu.metrostate.ics342.mediatracker.R.string.action_change_status)) },
                         onClick = { menuExpanded = false; statusDialogVisible = true }
                     )
+                    if (item.status == LibraryStatus.WANT_TO) {
+                        DropdownMenuItem(
+                            text    = { Text("Add to Priorities") },
+                            onClick = { menuExpanded = false; onAddToPriorities() }
+                        )
+                    }
                     DropdownMenuItem(
                         text    = { Text(stringResource(edu.metrostate.ics342.mediatracker.R.string.action_remove_from_library),
                             color = MaterialTheme.colorScheme.error) },

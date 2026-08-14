@@ -29,11 +29,28 @@ class DefaultPriorityRepository(sessionRepository: SessionRepository) {
 
     // Sends the FULL updated list — PUT /priorities replaces the whole set,
     // there's no per-item add/remove endpoint (per the handout).
+    // Sends a slimmed-down write shape (no nested `media`) since the API
+    // rejected the full Priority object with a 400.
     suspend fun updatePriorities(priorities: List<Priority>): List<Priority> {
-        val response = api.updatePriorities(UpdatePrioritiesRequest(priorities))
-        if (response.isSuccessful) {
-            return (response.body() ?: emptyList()).sortedBy { it.orderIndex }
+        val results = mutableListOf<Priority>()
+        for (p in priorities) {
+            val writeItem = PriorityWriteItem(
+                mediaId = p.mediaId,
+                priority = p.priority,
+                orderIndex = p.orderIndex,
+                estimatedTimeHours = p.estimatedTimeHours,
+                notes = p.notes
+            )
+            val response = api.updatePriorities(writeItem)
+            if (response.isSuccessful) {
+                response.body()?.let { results.add(it) }
+            } else {
+                throw Exception("Something went wrong (${response.code()}).")
+            }
         }
-        throw Exception("Something went wrong (${response.code()}).")
+        // Fall back to what we just sent if the server ever omits a body,
+        // so the UI still reflects the update even without full round-trip data.
+        return if (results.size == priorities.size) results.sortedBy { it.orderIndex }
+        else priorities.sortedBy { it.orderIndex }
     }
 }
