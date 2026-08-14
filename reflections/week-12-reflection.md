@@ -1,4 +1,4 @@
-# Week 11 Reflection — Bonus Feature Sprint (Week 1 of 2)
+# Week 12 Reflection — Bonus Feature Sprint (Week 2 of 2)
 
 *This week's reflection is different from the standard template. We're not doing Profile this week — instead, this is the first of two weeks building your assigned bonus feature (Write Review, Quotes, or Priorities). See `reflection-instructions.md` for naming/submission rules, which are unchanged; only the content below differs.*
 
@@ -22,7 +22,7 @@ Priorities
 
 **Link:**
 
-
+https://github.com/fucheeyoung-blip/media-tracker-android/pull/12/changes
 
 ---
 
@@ -60,14 +60,21 @@ Priorities
 
 **What's working:**
 
+The full add-to-priorities loop is now working end-to-end with real data: a "Want To" item in the Library can be marked as a priority (High/Medium/Low) with optional estimated hours and notes via a new dialog on `LibraryScreen`, which calls `PriorityViewModel.addOrUpdatePriority()`. That correctly PUTs to the priorities endpoint and the item shows up on `PriorityScreen` with the right badge, hours, and notes. Filter chips (All/High/Medium/Low) work correctly against real data now, not just the empty state.
+
 **What's still stubbed, fake, or not started:**
+
+Drag-to-reorder isn't built yet — cards still show a static drag-handle icon with no actual gesture wired up. The 5-item cap logic exists in the ViewModel (`canAddMore()`) but I haven't confirmed it triggers correctly in the UI with 5 real items yet. I also haven't written the required Week 2 test (either reordering state or the 5-item cap). No remove-from-priorities UI exists yet either, even though `PriorityViewModel.removePriority()` is already written.
 
 
 **What I'm blocked on, if anything:**
 
+Not blocked, but this session ended up being almost entirely bug-fixing rather than new feature work. I discovered `PUT /priorities` doesn't behave like a typical bulk-replace endpoint — it actually accepts and returns **one priority entry at a time**, not a list, despite my `Priority`/`UpdatePrioritiesRequest` models originally assuming a list-based body and response. I only found this by reading the raw request/response bytes in Logcat, since the API kept returning a generic `"Missing required field: mediaId"` error that was actually caused by sending an array when it wanted a single object. I had to rewrite `DefaultPriorityRepository.updatePriorities()` to loop over items and call the endpoint once per item, and change the endpoint's Retrofit signature from `List<PriorityWriteItem>` to a single `PriorityWriteItem`, with the response type changed from `List<Priority>` to a single `Priority`. Since that's now sorted out, I should be able to move faster on drag-to-reorder and the cap enforcement.
 ---
 
 ## One Thing I Understood More Deeply
+
+Trial-and-error on request shape doesn't scale — reading the actual bytes does. I spent a while guessing at what shape the API wanted (wrapped object vs. bare array, full `Priority` vs. a slimmed request type) and kept getting the same generic error back, which made it feel like nothing I changed was working. It wasn't until I actually looked at the raw OkHttp request/response logs in Logcat that I saw the real signal: the server was returning the exact same "missing mediaId" message whether I sent a wrapped object or a bare array, which only makes sense if it's expecting neither — a single flat object. That one piece of evidence (not another guess) is what actually solved it. I'm going to reach for request/response logging much earlier next time instead of guessing at shapes based on typical REST conventions, since this API didn't follow them.
 
 <!-- Be specific. What clicked this week, building your own feature instead of following a handout step-by-step? -->
 
@@ -75,6 +82,8 @@ Debugging a silent failure taught me more than the wiring did. My "+ Want To" bu
 
 
 ## One Thing I'm Still Confused About
+
+I don't fully understand why the API is designed this way — a "bulk update" endpoint that only accepts one item per call feels unusual for a `PUT` on a collection resource, and I'm not sure if that's intentional API design, an inconsistency in how it was built, or something I'm still misunderstanding about the intended usage. I'd like to understand the reasoning (or confirm it really is just quirky) before I build drag-to-reorder on top of it, since reordering will need multiple items updated together and I want to make sure I'm not about to hit the same wall again with a rewritten loop.
 
 <!-- Be honest. This tells me where to spend time in class next week. -->
 
