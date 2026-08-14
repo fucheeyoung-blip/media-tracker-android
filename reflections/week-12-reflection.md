@@ -32,23 +32,26 @@ https://github.com/fucheeyoung-blip/media-tracker-android/pull/12/changes
 
 **Reviewed:** *(pod mate's name)*
 
+Fasika Yifru
 
 
 **Link to my review:**
 
+https://github.com/FasikaYifru/fy-media-tracker-android/commit/7560c9840fbe14e2501aa3e2e11d6fd685bdad77#r196192777
 
 
 ### What I Looked At
 
+ReviewApiService.kt and ReviewRequest.kt — the Retrofit interface and request model backing Fasika's Write Review bonus feature (create/update/delete review endpoints).
 
 ### What I Noticed
 
-
+updateReview takes @Path("id") id: Int to target a specific review, but the ReviewRequest body it sends also includes mediaId. Since the review is already uniquely identified by id in the path, it's not clear whether the server actually uses mediaId on update or just ignores it — and if it does use it, a bug elsewhere could end up reassigning a review to the wrong media item without anything in the client catching it. This felt similar to the PUT /priorities issue I ran into this week, where the body shape I assumed from REST conventions didn't match what the server actually expected, and I only found the real behavior by reading the raw request/response bytes in Logcat.
 
 
 ### Comments I Left
 
-
+Noticed updateReview sends mediaId in the request body even though the review's already targeted by id in the path. Is the server expected to ignore that field on update, or does it actually use it? Might be worth confirming — similar to the priorities endpoint I ran into this week, where the body shape didn't match what I assumed from REST conventions and I only figured it out by reading the raw request/response bytes. Probably worth a quick Logcat check before this gets built on top of.
 ---
 
 ## Bonus Feature Progress
